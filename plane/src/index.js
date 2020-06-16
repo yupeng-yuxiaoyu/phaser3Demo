@@ -12,16 +12,18 @@ gameSenceCenter.boot = {
       }
     }
     const percentText = this.make.text({
-      x: this.game.config.width / 2,
-      y: this.game.config.height / 2 - 5,
-      text: '0%',
-      style: {
-        font: '18px monospace',
-        fill: '#ffffff'
-      }
-    })
-    .setOrigin(0.5, 0.5);
-
+        x: this.game.config.width / 2,
+        y: this.game.config.height / 2 - 5,
+        text: '0%',
+        style: {
+          font: '18px monospace',
+          fill: '#ffffff'
+        }
+      })
+      .setOrigin(0.5, 0.5);
+    if (!this.game.device.desktop) {
+      this.scale.scaleMode = Phaser.Scale.ENVELOP;
+    }
     this.load.on('progress', function (value) {
       percentText.setText(parseInt(value * 100) + '%');
     });
@@ -39,7 +41,7 @@ gameSenceCenter.boot = {
 gameSenceCenter.start = {
   key: 'start',
   create() {
-    this.add.image(0,0,'bg').setOrigin(0);
+    this.add.image(0, 0, 'bg').setOrigin(0);
   },
   update() {},
 }
