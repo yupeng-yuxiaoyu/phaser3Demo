@@ -48,7 +48,7 @@ gameSenceCenter.boot = {
     });
   },
   create() {
-    this.scene.start('start');
+    this.scene.start('play');
   },
   update() {}
 }
@@ -77,22 +77,42 @@ gameSenceCenter.start = {
 
     // 添加开始按钮
     const startButton =  this.add.sprite(this.game.config.width / 2, 200, 'startbutton', 1).setInteractive();
+    // 开始按钮事件
     startButton.on('pointerdown', () => {
       startButton.setFrame(0);
     })
     startButton.on('pointerup', () => {
       startButton.setFrame(1);
       console.log('start game');
+      this.scene.start('play');
     })
    
   },
   update() {},
 }
 
+gameSenceCenter.play = {
+  key: 'play',
+  create() {
+
+    // 添加背景
+    this.bg = this.add.tileSprite(0, 0, this.game.config.width, this.game.config.height, 'bg').setOrigin(0);
+    this.bg.setScrollFactor(1);
+    // 引入飞机精灵
+    const plane = this.add.sprite(this.game.config.width / 2, 100, 'myplane');
+
+    // 飞机调用飞行动画
+    plane.anims.play('fly');
+  },
+  update() {
+    this.bg.tilePositionY -= 1;
+  },
+}
+
 const config = {
   type: Phaser.AUTO,
   width: 240,
   height: 400,
-  scene: [gameSenceCenter.boot, gameSenceCenter.start],
+  scene: [gameSenceCenter.boot, gameSenceCenter.start, gameSenceCenter.play],
 };
 const game = new Phaser.Game(config);
