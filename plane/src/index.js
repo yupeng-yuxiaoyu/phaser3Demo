@@ -1,32 +1,31 @@
-import Phaser from "phaser";
-import logoImg from "./assets/logo.png";
-
+import Phaser from 'phaser';
+const assetsMap = require('./asset_map.json');
 const config = {
   type: Phaser.AUTO,
-  parent: "phaser-example",
-  width: 800,
-  height: 600,
+  width: 240,
+  height: 400,
   scene: {
-    preload: preload,
-    create: create
-  }
+    preload,
+    create,
+    update,
+  },
 };
 
 const game = new Phaser.Game(config);
-
+const asset = {};
 function preload() {
-  this.load.image("logo", logoImg);
+  for (const key in assetsMap) {
+    if (assetsMap.hasOwnProperty(key)) {
+      asset[key] = this.load.image(key, require(`./${assetsMap[key]}`));
+    }
+  }
 }
 
 function create() {
-  const logo = this.add.image(400, 150, "logo");
+  const bg = this.add.image(0, 0, 'bg');
+  bg.setOrigin(0, 0);
+}
 
-  this.tweens.add({
-    targets: logo,
-    y: 450,
-    duration: 2000,
-    ease: "Power2",
-    yoyo: true,
-    loop: -1
-  });
+function update() {
+
 }
