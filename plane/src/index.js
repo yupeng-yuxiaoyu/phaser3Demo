@@ -101,8 +101,21 @@ gameSenceCenter.play = {
     // 引入飞机精灵
     const plane = this.add.sprite(this.game.config.width / 2, 100, 'myplane');
 
+    // 创建飞行帧动画
+    this.anims.create({
+      key: 'fly',
+      frames: this.anims.generateFrameNumbers('myplane', { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1
+    });
+
     // 飞机调用飞行动画
     plane.anims.play('fly');
+    this.tweens.add({
+      targets: plane,
+      y: this.game.config.height - plane.height,
+      duration: 1000,
+    });
   },
   update() {
     this.bg.tilePositionY -= 1;
