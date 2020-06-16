@@ -22,7 +22,8 @@ gameSenceCenter.boot = {
       })
       .setOrigin(0.5, 0.5);
     if (!this.game.device.desktop) {
-      this.scale.scaleMode = Phaser.Scale.ENVELOP;
+      this.scale.scaleMode = Phaser.Scale.FIT;
+      this.scale.refresh();
     }
     this.load.on('progress', function (value) {
       percentText.setText(parseInt(value * 100) + '%');
