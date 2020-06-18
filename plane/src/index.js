@@ -132,6 +132,8 @@ gameSenceCenter.play = {
         this.plane.on('dragend', function(pointer) {
           this.clearTint();
         });
+        this.physics.add.existing(this.plane);
+        this.plane.body.setCollideWorldBounds(true);
       },
     });
     this.beforeTime = 0;
