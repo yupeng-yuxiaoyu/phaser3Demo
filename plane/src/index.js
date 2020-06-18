@@ -21,7 +21,7 @@ gameSenceCenter.boot = {
             frameHeight: 40,
           });
           continue;
-        } 
+        }
         assetsMap[key] = this.load.image(key, require(`./${assetsMap[key]}`));
       }
     }
@@ -67,7 +67,10 @@ gameSenceCenter.start = {
     // 创建飞行帧动画
     this.anims.create({
       key: 'fly',
-      frames: this.anims.generateFrameNumbers('myplane', { start: 0, end: 3 }),
+      frames: this.anims.generateFrameNumbers('myplane', {
+        start: 0,
+        end: 3
+      }),
       frameRate: 10,
       repeat: -1
     });
@@ -76,7 +79,7 @@ gameSenceCenter.start = {
     plane.anims.play('fly');
 
     // 添加开始按钮
-    const startButton =  this.add.sprite(this.game.config.width / 2, 200, 'startbutton', 1).setInteractive();
+    const startButton = this.add.sprite(this.game.config.width / 2, 200, 'startbutton', 1).setInteractive();
     // 开始按钮事件
     startButton.on('pointerdown', () => {
       startButton.setFrame(0);
@@ -86,7 +89,6 @@ gameSenceCenter.start = {
       console.log('start game');
       this.scene.start('play');
     })
-   
   },
   update() {},
 }
@@ -98,26 +100,51 @@ gameSenceCenter.play = {
     // 添加背景
     this.bg = this.add.tileSprite(0, 0, this.game.config.width, this.game.config.height, 'bg').setOrigin(0);
     this.bg.setScrollFactor(1);
+
+    // 添加文本
+    this.add.text(0, 0, 'Score: 0', {color: '#ff0000', fontSize: '16px'});
+
     // 引入飞机精灵
-    const plane = this.add.sprite(this.game.config.width / 2, 100, 'myplane');
+    this.plane = this.add.sprite(this.game.config.width / 2, 100, 'myplane').setInteractive({ draggable: true });
 
     // 创建飞行帧动画
     this.anims.create({
       key: 'fly',
-      frames: this.anims.generateFrameNumbers('myplane', { start: 0, end: 3 }),
+      frames: this.anims.generateFrameNumbers('myplane', {
+        start: 0,
+        end: 3
+      }),
       frameRate: 10,
       repeat: -1
     });
 
     // 飞机调用飞行动画
-    plane.anims.play('fly');
+    this.plane.anims.play('fly');
     this.tweens.add({
-      targets: plane,
-      y: this.game.config.height - plane.height,
+      targets: this.plane,
+      y: this.game.config.height - this.plane.height,
       duration: 1000,
+      onComplete: () => {
+        this.plane.on('drag', function(pointer, dragX, dragY) {
+          this.x = dragX;
+          this.y = dragY;
+        });
+        this.plane.on('dragend', function(pointer) {
+          this.clearTint();
+        });
+      },
     });
+    this.beforeTime = 0;
   },
   update() {
+    const time = new Date().getTime();
+    // 引入子弹
+    if (time - this.beforeTime > 500) {
+      const bullet = this.add.sprite(this.plane.x, this.plane.y - this.plane.height / 2, 'mybullet');
+      this.beforeTime = time;
+      this.physics.add.existing(bullet);
+      bullet.body.setVelocity(0, -200);
+    }
     this.bg.tilePositionY -= 1;
   },
 }
@@ -127,5 +154,8 @@ const config = {
   width: 240,
   height: 400,
   scene: [gameSenceCenter.boot, gameSenceCenter.start, gameSenceCenter.play],
+  physics: {
+    default: 'arcade',
+  }
 };
 const game = new Phaser.Game(config);
