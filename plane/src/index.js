@@ -136,16 +136,29 @@ gameSenceCenter.play = {
         this.plane.body.setCollideWorldBounds(true);
       },
     });
+
+    // 创建一个子弹组
+    this.bullets = this.add.group();
+
+    // 创建一个敌机
+    this.enemySmall = this.add.sprite(30, 30, 'enemy1');
+    this.physics.add.existing(this.enemySmall);
+    // 设置默认时间为0
     this.beforeTime = 0;
+    this.physics.add.overlap(this.bullets, this.enemySmall, function (bullet, enemy) {
+      bullet.destroy();
+      enemy.destroy();
+    }, null, this);
   },
   update() {
     const time = new Date().getTime();
     // 引入子弹
     if (time - this.beforeTime > 500) {
       const bullet = this.add.sprite(this.plane.x, this.plane.y - this.plane.height / 2, 'mybullet');
+      this.bullets.add(bullet);
       this.beforeTime = time;
       this.physics.add.existing(bullet);
-      bullet.body.setVelocity(0, -200);
+      bullet.body.setVelocity(0, -300);
     }
     this.bg.tilePositionY -= 1;
   },
