@@ -3,6 +3,48 @@ const assetsMap = require('./asset_map.json');
 
 const gameSenceCenter = {};
 
+const BulletClass = new Phaser.Class({
+  Extends: Phaser.GameObjects.Sprite,
+  initialize: function Bullet(scene) {
+    Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'mybullet');
+  },
+  update: function () {
+    if (this.y < -50) {
+      this.hide();
+    }
+  },
+  fire: function () {
+    this.setActive(true);
+    this.setVisible(true);
+  },
+  hide: function() {
+    this.setActive(false);
+    this.setVisible(false);
+  }
+});
+
+function EnemyFactory(key , gameHeight) {
+  return new Phaser.Class({
+    Extends: Phaser.GameObjects.Sprite,
+    initialize: function Bullet(scene) {
+      Phaser.GameObjects.Sprite.call(this, scene, 0, 0, key);
+    },
+    update: function () {
+      if (this.y > gameHeight) {
+        this.hide();
+      }
+    },
+    show: function () {
+      this.setActive(true);
+      this.setVisible(true);
+    },
+    hide: function() {
+      this.setActive(false);
+      this.setVisible(false);
+    }
+  });
+}
+
 gameSenceCenter.boot = {
   key: 'boot',
   preload() {
@@ -136,26 +178,6 @@ gameSenceCenter.play = {
         this.plane.body.setCollideWorldBounds(true);
       },
     });
-    const BulletClass = new Phaser.Class({
-      Extends: Phaser.GameObjects.Sprite,
-      initialize: function Bullet(scene) {
-        Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'mybullet');
-        console.log('create')
-      },
-      update: function () {
-        if (this.y < -50) {
-          this.hide();
-        }
-      },
-      fire: function () {
-        this.setActive(true);
-        this.setVisible(true);
-      },
-      hide: function() {
-        this.setActive(false);
-        this.setVisible(false);
-      }
-    });
 
     // 创建一个子弹组
     this.bullets = this.add.group({
@@ -163,32 +185,55 @@ gameSenceCenter.play = {
       runChildUpdate: true,
     });
 
-    // 创建一个敌机
-    this.enemySmall = this.add.sprite(30, 30, 'enemy1');
-    this.physics.add.existing(this.enemySmall);
-    // 设置默认时间为0
-    this.beforeTime = 0;
-    this.physics.add.overlap(this.bullets, this.enemySmall, function (bullet, enemy) {
-      bullet.hide();
-      enemy.destroy();
-    }, null, this);
+    // 创建敌机组
+    ['enemy1', 'enemy2', 'enemy3'].forEach((item) => {
+      const EnemyClass = EnemyFactory(item, this.game.config.height);
+      this[item] = this.add.group({
+        classType: EnemyClass,
+        runChildUpdate: true,
+      });
+    });
+
+    // 设置敌机生成默认时间为0
+    this.enemyBeforeTime = 0;
+    // 设置我的子弹默认时间为0
+    this.myBulletBeforeTime = 0;
+    ['enemy1', 'enemy2', 'enemy3'].forEach((item) => {
+      this.physics.add.overlap(this.bullets, this[item], function (bullet, enemy) {
+        bullet.destroy();
+        enemy.destroy();
+      }, null, this);
+    });
   },
   update() {
     const time = new Date().getTime();
 
-    // 引入子弹
-    if (time - this.beforeTime > 500) {
+    // 引入我的子弹
+    if (time - this.myBulletBeforeTime > 200) {
       const bullet = this.bullets.getFirstDead(true);
       if (bullet) {
         bullet.fire();
         bullet.setPosition(this.plane.x, this.plane.y - this.plane.height / 2);
         this.physics.add.existing(bullet);
         bullet.body.setVelocity(0, -300);
-        this.beforeTime = time;
+        this.myBulletBeforeTime = time;
+      }
+    }
+
+    // 引入敌机
+    if (time - this.enemyBeforeTime > 300) {
+      const enemyIndex = Phaser.Math.Between(1, 3);
+      const enemy = this[`enemy${enemyIndex}`].getFirstDead(true);
+      if (enemy) {
+        enemy.show();
+        enemy.setOrigin(0.5, 0.5);
+        enemy.setPosition(Phaser.Math.Between(0 + enemy.width, this.game.config.width - enemy.width), 0);
+        this.physics.add.existing(enemy);
+        enemy.body.setVelocity(0, 200);
+        this.enemyBeforeTime = time;
       }
     }
     this.bg.tilePositionY -= 1;
-    console.log('this.bullets :>> ', this.bullets.children.size);
   },
 }
 
