@@ -26,14 +26,14 @@ gameSenceCenter.boot = {
       }
     }
     const percentText = this.make.text({
-        x: this.game.config.width / 2,
-        y: this.game.config.height / 2 - 5,
-        text: '0%',
-        style: {
-          font: '18px monospace',
-          fill: '#ffffff'
-        }
-      })
+      x: this.game.config.width / 2,
+      y: this.game.config.height / 2 - 5,
+      text: '0%',
+      style: {
+        font: '18px monospace',
+        fill: '#ffffff'
+      }
+    })
       .setOrigin(0.5, 0.5);
     if (!this.game.device.os.desktop) {
       this.scale.scaleMode = Phaser.Scale.FIT;
@@ -48,9 +48,9 @@ gameSenceCenter.boot = {
     });
   },
   create() {
-    this.scene.start('play');
+    this.scene.start('start');
   },
-  update() {}
+  update() { }
 }
 
 gameSenceCenter.start = {
@@ -90,7 +90,7 @@ gameSenceCenter.start = {
       this.scene.start('play');
     })
   },
-  update() {},
+  update() { },
 }
 
 gameSenceCenter.play = {
@@ -102,7 +102,7 @@ gameSenceCenter.play = {
     this.bg.setScrollFactor(1);
 
     // 添加文本
-    this.add.text(0, 0, 'Score: 0', {color: '#ff0000', fontSize: '16px'});
+    this.add.text(0, 0, 'Score: 0', { color: '#ff0000', fontSize: '16px' });
 
     // 引入飞机精灵
     this.plane = this.add.sprite(this.game.config.width / 2, 100, 'myplane').setInteractive({ draggable: true });
@@ -125,20 +125,43 @@ gameSenceCenter.play = {
       y: this.game.config.height - this.plane.height,
       duration: 1000,
       onComplete: () => {
-        this.plane.on('drag', function(pointer, dragX, dragY) {
+        this.plane.on('drag', function (pointer, dragX, dragY) {
           this.x = dragX;
           this.y = dragY;
         });
-        this.plane.on('dragend', function(pointer) {
+        this.plane.on('dragend', function (pointer) {
           this.clearTint();
         });
         this.physics.add.existing(this.plane);
         this.plane.body.setCollideWorldBounds(true);
       },
     });
+    const BulletClass = new Phaser.Class({
+      Extends: Phaser.GameObjects.Sprite,
+      initialize: function Bullet(scene) {
+        Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'mybullet');
+        console.log('create')
+      },
+      update: function () {
+        if (this.y < -50) {
+          this.setActive(false);
+          this.setVisible(false);
+        }
+      }
+    });
 
     // 创建一个子弹组
-    this.bullets = this.add.group();
+    this.bullets = this.add.group({
+      classType: BulletClass,
+      runChildUpdate: true,
+    });
+    this.bullets.createMultiple({
+      classType: BulletClass,
+      key: 'mybullet',
+      quantity: 5,
+      active: false,
+      visible: false,
+    });
 
     // 创建一个敌机
     this.enemySmall = this.add.sprite(30, 30, 'enemy1');
@@ -146,21 +169,28 @@ gameSenceCenter.play = {
     // 设置默认时间为0
     this.beforeTime = 0;
     this.physics.add.overlap(this.bullets, this.enemySmall, function (bullet, enemy) {
-      bullet.destroy();
+      bullet.setActive(false);
+      bullet.setVisible(false);
       enemy.destroy();
     }, null, this);
   },
   update() {
     const time = new Date().getTime();
+
     // 引入子弹
     if (time - this.beforeTime > 500) {
-      const bullet = this.add.sprite(this.plane.x, this.plane.y - this.plane.height / 2, 'mybullet');
-      this.bullets.add(bullet);
-      this.beforeTime = time;
-      this.physics.add.existing(bullet);
-      bullet.body.setVelocity(0, -300);
+      const bullet = this.bullets.getFirstDead(false);
+      if (bullet) {
+        bullet.setActive(true);
+        bullet.setVisible(true);
+        bullet.setPosition(this.plane.x, this.plane.y - this.plane.height / 2);
+        this.physics.add.existing(bullet);
+        bullet.body.setVelocity(0, -300);
+        this.beforeTime = time;
+      }
     }
     this.bg.tilePositionY -= 1;
+    console.log('this.bullets :>> ', this.bullets.children.size);
   },
 }
 
