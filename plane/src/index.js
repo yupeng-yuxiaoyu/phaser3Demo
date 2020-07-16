@@ -144,9 +144,16 @@ gameSenceCenter.play = {
       },
       update: function () {
         if (this.y < -50) {
-          this.setActive(false);
-          this.setVisible(false);
+          this.hide();
         }
+      },
+      fire: function () {
+        this.setActive(true);
+        this.setVisible(true);
+      },
+      hide: function() {
+        this.setActive(false);
+        this.setVisible(false);
       }
     });
 
@@ -155,13 +162,6 @@ gameSenceCenter.play = {
       classType: BulletClass,
       runChildUpdate: true,
     });
-    this.bullets.createMultiple({
-      classType: BulletClass,
-      key: 'mybullet',
-      quantity: 5,
-      active: false,
-      visible: false,
-    });
 
     // 创建一个敌机
     this.enemySmall = this.add.sprite(30, 30, 'enemy1');
@@ -169,8 +169,7 @@ gameSenceCenter.play = {
     // 设置默认时间为0
     this.beforeTime = 0;
     this.physics.add.overlap(this.bullets, this.enemySmall, function (bullet, enemy) {
-      bullet.setActive(false);
-      bullet.setVisible(false);
+      bullet.hide();
       enemy.destroy();
     }, null, this);
   },
@@ -179,10 +178,9 @@ gameSenceCenter.play = {
 
     // 引入子弹
     if (time - this.beforeTime > 500) {
-      const bullet = this.bullets.getFirstDead(false);
+      const bullet = this.bullets.getFirstDead(true);
       if (bullet) {
-        bullet.setActive(true);
-        bullet.setVisible(true);
+        bullet.fire();
         bullet.setPosition(this.plane.x, this.plane.y - this.plane.height / 2);
         this.physics.add.existing(bullet);
         bullet.body.setVelocity(0, -300);
