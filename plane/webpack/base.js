@@ -25,6 +25,9 @@ module.exports = {
       }
     ]
   },
+  devServer: {
+    port:7000
+  },
   plugins: [
     new CleanWebpackPlugin({
       root: path.resolve(__dirname, "../")

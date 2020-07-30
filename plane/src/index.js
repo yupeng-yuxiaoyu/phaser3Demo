@@ -22,16 +22,51 @@ const BulletClass = new Phaser.Class({
     this.setVisible(false);
   }
 });
-
-function EnemyFactory(key , gameHeight) {
+function EnemyBulletClass(gameHeight) {
   return new Phaser.Class({
     Extends: Phaser.GameObjects.Sprite,
     initialize: function Bullet(scene) {
-      Phaser.GameObjects.Sprite.call(this, scene, 0, 0, key);
+      Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'bullet');
     },
     update: function () {
       if (this.y > gameHeight) {
         this.hide();
+      }
+    },
+    fire: function () {
+      this.setActive(true);
+      this.setVisible(true);
+    },
+    hide: function() {
+      this.setActive(false);
+      this.setVisible(false);
+    }
+  });
+}
+
+function EnemyFactory(key , gameHeight, enemyBullets) {
+  return new Phaser.Class({
+    Extends: Phaser.GameObjects.Sprite,
+    initialize: function Bullet(scene) {
+      Phaser.GameObjects.Sprite.call(this, scene, 0, 0, key);
+      this.bulletSpeed = 1000 * (4 - key.replace('enemy', ''));
+      this.life = key.replace('enemy', '');
+      this.enemyButtelBeforeTime = 0;
+    },
+    update: function () {
+      const time = new Date().getTime();
+      if (this.y > gameHeight) {
+        this.hide();
+      }
+      if (time - this.enemyButtelBeforeTime >= this.bulletSpeed) {
+        const bullet = enemyBullets.getFirstDead(true);
+        if (bullet) {
+          bullet.fire();
+          bullet.setPosition(this.x, this.y + this.height / 2);
+          this.scene.physics.add.existing(bullet);
+          bullet.body.setVelocity(0, 100 * (4 - key.replace('enemy', '')));
+          this.enemyButtelBeforeTime = time;
+        }
       }
     },
     show: function () {
@@ -184,10 +219,17 @@ gameSenceCenter.play = {
       classType: BulletClass,
       runChildUpdate: true,
     });
+    
+    // 创建敌机子弹组
+    const EnemyBullteClass = EnemyBulletClass(this.game.config.height);
+    this.enemyBullets = this.add.group({
+      classType: EnemyBullteClass,
+      runChildUpdate: true,
+    });
 
     // 创建敌机组
     ['enemy1', 'enemy2', 'enemy3'].forEach((item) => {
-      const EnemyClass = EnemyFactory(item, this.game.config.height);
+      const EnemyClass = EnemyFactory(item, this.game.config.height, this.enemyBullets);
       this[item] = this.add.group({
         classType: EnemyClass,
         runChildUpdate: true,
@@ -204,13 +246,21 @@ gameSenceCenter.play = {
         enemy.destroy();
       }, null, this);
     });
+    this.physics.add.overlap(this.bullets, this.enemyBullets, function (bullet, enemyBullet) {
+      bullet.destroy();
+      enemyBullet.destroy();
+    }, null, this);
+    this.physics.add.overlap(this.enemyBullets, this.plane, function (enemyBullet, plane) {
+      plane.destroy();
+      this.gameOver = true;
+    }, null, this);
   },
   update() {
     const time = new Date().getTime();
 
     // 引入我的子弹
-    if (time - this.myBulletBeforeTime > 200) {
-      const bullet = this.bullets.getFirstDead(true);
+    if (time - this.myBulletBeforeTime > 200 && !this.gameOver) {
+      const bullet = this.bullets && this.bullets.getFirstDead(true);
       if (bullet) {
         bullet.fire();
         bullet.setPosition(this.plane.x, this.plane.y - this.plane.height / 2);
@@ -221,7 +271,7 @@ gameSenceCenter.play = {
     }
 
     // 引入敌机
-    if (time - this.enemyBeforeTime > 300) {
+    if (time - this.enemyBeforeTime > 500) {
       const enemyIndex = Phaser.Math.Between(1, 3);
       const enemy = this[`enemy${enemyIndex}`].getFirstDead(true);
       if (enemy) {
@@ -229,7 +279,7 @@ gameSenceCenter.play = {
         enemy.setOrigin(0.5, 0.5);
         enemy.setPosition(Phaser.Math.Between(0 + enemy.width, this.game.config.width - enemy.width), 0);
         this.physics.add.existing(enemy);
-        enemy.body.setVelocity(0, 200);
+        enemy.body.setVelocity(0, 50 * (4 - enemyIndex));
         this.enemyBeforeTime = time;
       }
     }
