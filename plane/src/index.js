@@ -52,6 +52,7 @@ function EnemyFactory(key , gameHeight, enemyBullets) {
       this.bulletSpeed = 1000 * (4 - key.replace('enemy', ''));
       this.life = key.replace('enemy', '');
       this.enemyButtelBeforeTime = 0;
+      this.index = key.replace('enemy', '');;
     },
     update: function () {
       const time = new Date().getTime();
@@ -95,6 +96,34 @@ gameSenceCenter.boot = {
         if (key === 'startbutton') {
           this.load.spritesheet(key, require(`./${assetsMap[key]}`), {
             frameWidth: 100,
+            frameHeight: 40,
+          });
+          continue;
+        }
+        if (key === 'explode1') {
+          this.load.spritesheet(key, require(`./${assetsMap[key]}`), {
+            frameWidth: 20,
+            frameHeight: 20,
+          });
+          continue;
+        }
+        if (key === 'explode2') {
+          this.load.spritesheet(key, require(`./${assetsMap[key]}`), {
+            frameWidth: 30,
+            frameHeight: 30,
+          });
+          continue;
+        }
+        if (key === 'explode3') {
+          this.load.spritesheet(key, require(`./${assetsMap[key]}`), {
+            frameWidth: 50,
+            frameHeight: 50,
+          });
+          continue;
+        }
+        if (key === 'myexplode') {
+          this.load.spritesheet(key, require(`./${assetsMap[key]}`), {
+            frameWidth: 40,
             frameHeight: 40,
           });
           continue;
@@ -195,6 +224,17 @@ gameSenceCenter.play = {
       repeat: -1
     });
 
+    // 创建飞行爆炸帧动画
+    this.anims.create({
+      key: 'planeBoom',
+      frames: this.anims.generateFrameNumbers('myexplode', {
+        start: 0,
+        end: 3
+      }),
+      frameRate: 2,
+      repeat: 1
+    });
+    
     // 飞机调用飞行动画
     this.plane.anims.play('fly');
     this.tweens.add({
@@ -234,6 +274,18 @@ gameSenceCenter.play = {
         classType: EnemyClass,
         runChildUpdate: true,
       });
+
+      const key = item.replace('enemy', '');
+      // 创建敌机爆炸帧动画
+      this.anims.create({
+        key: `enemyBoom${key}`,
+        frames: this.anims.generateFrameNumbers(`explode${key}`, {
+          start: 0,
+          end: 2
+        }),
+        frameRate: 5,
+        repeat: 0
+      });
     });
 
     // 设置敌机生成默认时间为0
@@ -243,7 +295,17 @@ gameSenceCenter.play = {
     ['enemy1', 'enemy2', 'enemy3'].forEach((item) => {
       this.physics.add.overlap(this.bullets, this[item], function (bullet, enemy) {
         bullet.destroy();
-        enemy.destroy();
+        enemy.life = enemy.life - 1;
+        if (enemy.life <= 0) {
+          enemy.destroy();
+          console.log('enemy :>> ', enemy);
+          const key = item.replace('enemy', '');
+          const enemyFrame = this.add.sprite(enemy.x, enemy.y, `explode${key}`);
+          enemyFrame.anims.play(`enemyBoom${key}`);
+          enemyFrame.once('animationcomplete', function() {
+            enemyFrame.destroy();
+          })
+        }
       }, null, this);
     });
     this.physics.add.overlap(this.bullets, this.enemyBullets, function (bullet, enemyBullet) {
@@ -253,6 +315,11 @@ gameSenceCenter.play = {
     this.physics.add.overlap(this.enemyBullets, this.plane, function (enemyBullet, plane) {
       plane.destroy();
       this.gameOver = true;
+      const myPlaneFrame = this.add.sprite(plane.x, plane.y, 'myexplode');
+      myPlaneFrame.anims.play('planeBoom');
+      myPlaneFrame.once('animationcomplete', function() {
+        myPlaneFrame.destroy();
+      })
     }, null, this);
   },
   update() {
@@ -271,7 +338,7 @@ gameSenceCenter.play = {
     }
 
     // 引入敌机
-    if (time - this.enemyBeforeTime > 500) {
+    if (time - this.enemyBeforeTime > 800) {
       const enemyIndex = Phaser.Math.Between(1, 3);
       const enemy = this[`enemy${enemyIndex}`].getFirstDead(true);
       if (enemy) {
