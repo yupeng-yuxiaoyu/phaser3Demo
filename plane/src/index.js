@@ -22,6 +22,32 @@ const BulletClass = new Phaser.Class({
     this.setVisible(false);
   }
 });
+
+const AwardClass = new Phaser.Class({
+  Extends: Phaser.GameObjects.Sprite,
+  initialize: function Award(scene) {
+    Phaser.GameObjects.Sprite.call(this, scene, 0, 0, 'award');
+  },
+  update: function () {
+    if (this.y < this.scene.game.height) {
+      this.hide();
+    }
+  },
+  show: function () {
+    this.setActive(true);
+    this.setVisible(true);
+    this.setOrigin(0.5, 0.5);
+    console.log(this);
+    this.setPosition(Phaser.Math.Between(0 + this.width, this.scene.game.config.width - this.width), 0);
+    this.scene.physics.add.existing(this);
+    this.body.setVelocity(0, 100);
+  },
+  hide: function() {
+    this.setActive(false);
+    this.setVisible(false);
+  }
+});
+
 function EnemyBulletClass(gameHeight) {
   return new Phaser.Class({
     Extends: Phaser.GameObjects.Sprite,
@@ -135,6 +161,42 @@ gameSenceCenter.boot = {
           });
           continue;
         }
+        if (key === 'ao') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
+        if (key === 'crash1') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
+        if (key === 'crash2') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
+        if (key === 'crash3') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
+        if (key === 'deng') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
+        if (key === 'fashe') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
+        if (key === 'normalback') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
+        if (key === 'pi') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
+        if (key === 'playback') {
+          this.load.audio(key, require(`./${assetsMap[key]}`));
+          continue;
+        }
         assetsMap[key] = this.load.image(key, require(`./${assetsMap[key]}`));
       }
     }
@@ -201,6 +263,14 @@ gameSenceCenter.start = {
       startButton.setFrame(1);
       console.log('start game');
       this.scene.start('play');
+      startAudio.stop();
+    })
+
+    // 添加声音
+    const startAudio = this.sound.add('normalback');
+    startAudio.play({
+      loop: true,
+      volume: 0.1,
     })
   },
   update() { },
@@ -220,8 +290,19 @@ gameSenceCenter.play = {
     this.scoreText = this.add.text(0, 0, 'Score: 0', { color: '#ff0000', fontSize: '16px' });
     this.score = 0;
 
+    // 添加声音
+    this.startAudio = this.sound.add('playback');
+    this.explode = this.sound.add('crash3');
+    this.pi = this.sound.add('pi');
+    this.ao = this.sound.add('ao');
+    this.startAudio.play({
+      loop: true,
+      volume: 0.1,
+    })
+
     // 引入飞机精灵
     this.plane = this.add.sprite(this.game.config.width / 2, 100, 'myplane').setInteractive({ draggable: true });
+    this.plane.life = 2;
 
     // 创建飞行帧动画
     this.anims.create({
@@ -306,6 +387,7 @@ gameSenceCenter.play = {
       this.physics.add.overlap(this.bullets, this[item], function (bullet, enemy) {
         bullet.destroy();
         enemy.life = enemy.life - 1;
+        this.explode.play();
         if (enemy.life <= 0) {
           enemy.destroy();
           const key = item.replace('enemy', '');
@@ -323,8 +405,16 @@ gameSenceCenter.play = {
       bullet.destroy();
       enemyBullet.destroy();
     }, null, this);
+    
     this.physics.add.overlap(this.enemyBullets, this.plane, (enemyBullet, plane) => {
+      enemyBullet.destroy();
+      this.pi.play();
+      if (plane.life > 1) {
+        plane.life -= 1;
+        return;
+      }
       plane.destroy();
+      this.ao.play();
       this.gameOver = true;
       const myPlaneFrame = this.add.sprite(plane.x, plane.y, 'myexplode');
       myPlaneFrame.anims.play('planeBoom');
@@ -333,22 +423,40 @@ gameSenceCenter.play = {
         this.scene.start('restart', {
           score: this.score,
         });
+        this.startAudio.stop();
       })
     }, null, this);
+
+    // 创建一个奖牌组
+    this.awards = this.add.group({
+      classType: AwardClass,
+      runChildUpdate: true,
+    });
+
+    this.physics.add.overlap(this.plane, this.awards, function (plane, award) {
+      award.destroy();
+      if (plane.life < 3) {
+        plane.life += 1;
+      }
+    }, null, this);
+
+    // 创建奖牌 每10秒创建一个
+    this.time.addEvent({
+      loop: true,
+      delay: 10000,
+      callback: () => {
+        const award = this.awards.getFirstDead(true);
+        award.show();
+      }
+    }) 
   },
   update() {
     const time = new Date().getTime();
 
     // 引入我的子弹
     if (time - this.myBulletBeforeTime > 200 && !this.gameOver) {
-      const bullet = this.bullets && this.bullets.getFirstDead(true);
-      if (bullet) {
-        bullet.fire();
-        bullet.setPosition(this.plane.x, this.plane.y - this.plane.height / 2);
-        this.physics.add.existing(bullet);
-        bullet.body.setVelocity(0, -300);
-        this.myBulletBeforeTime = time;
-      }
+      createBulletByLife.call(this);
+      this.myBulletBeforeTime = time;
     }
 
     // 引入敌机
@@ -406,9 +514,42 @@ gameSenceCenter.restart = {
       restartButton.setFrame(0);
       console.log('start game');
       this.scene.start('play');
+      startAudio.stop();
+    })
+    // 添加声音
+    const startAudio = this.sound.add('normalback');
+    startAudio.play({
+      loop: true,
+      volume: 0.1,
     })
   },
   update() { },
+}
+
+function createBulletByLife() {
+  if (this.plane.life === 2) {
+    for (let index = 0; index < 3; index++) {
+      createBullets.call(this, index - 1);
+    }
+  } else if (this.plane.life === 3) {
+    for (let index = 0; index < 5; index++) {
+      createBullets.call(this, index - 2);
+    }
+  } else if (this.plane.life === 1) {
+    createBullets.call(this, 0);
+  }
+  const fireAudio = this.sound.add('fashe');
+  fireAudio.play();
+
+  function createBullets(index) {
+    const bullet = this.bullets && this.bullets.getFirstDead(true);
+    if (bullet) {
+      bullet.fire();
+      bullet.setPosition(this.plane.x, this.plane.y - this.plane.height / 2);
+      this.physics.add.existing(bullet);
+      bullet.body.setVelocity(index * 30, -300);
+    }
+  }
 }
 
 const config = {
