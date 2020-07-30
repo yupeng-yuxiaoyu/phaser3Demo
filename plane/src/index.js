@@ -100,6 +100,13 @@ gameSenceCenter.boot = {
           });
           continue;
         }
+        if (key === 'replaybutton') {
+          this.load.spritesheet(key, require(`./${assetsMap[key]}`), {
+            frameWidth: 80,
+            frameHeight: 30,
+          });
+          continue;
+        }
         if (key === 'explode1') {
           this.load.spritesheet(key, require(`./${assetsMap[key]}`), {
             frameWidth: 20,
@@ -202,6 +209,8 @@ gameSenceCenter.start = {
 gameSenceCenter.play = {
   key: 'play',
   create() {
+    // 重置数据
+    this.gameOver = false;
 
     // 添加背景
     this.bg = this.add.tileSprite(0, 0, this.game.config.width, this.game.config.height, 'bg').setOrigin(0);
@@ -299,7 +308,6 @@ gameSenceCenter.play = {
         enemy.life = enemy.life - 1;
         if (enemy.life <= 0) {
           enemy.destroy();
-          console.log('enemy :>> ', enemy);
           const key = item.replace('enemy', '');
           this.score = +key + this.score;
           this.scoreText.setText(`Score: ${this.score}`, this.score);
@@ -315,13 +323,16 @@ gameSenceCenter.play = {
       bullet.destroy();
       enemyBullet.destroy();
     }, null, this);
-    this.physics.add.overlap(this.enemyBullets, this.plane, function (enemyBullet, plane) {
+    this.physics.add.overlap(this.enemyBullets, this.plane, (enemyBullet, plane) => {
       plane.destroy();
       this.gameOver = true;
       const myPlaneFrame = this.add.sprite(plane.x, plane.y, 'myexplode');
       myPlaneFrame.anims.play('planeBoom');
-      myPlaneFrame.once('animationcomplete', function() {
+      myPlaneFrame.once('animationcomplete', () => {
         myPlaneFrame.destroy();
+        this.scene.start('restart', {
+          score: this.score,
+        });
       })
     }, null, this);
   },
@@ -357,11 +368,54 @@ gameSenceCenter.play = {
   },
 }
 
+gameSenceCenter.restart = {
+  key: 'restart',
+  create(data) {
+    // 添加背景
+    const bg = this.add.image(0, 0, 'bg').setOrigin(0);
+    this.add.image(this.game.config.width / 2, this.game.config.height - 16, 'copyright');
+
+    // 引入飞机精灵
+    const plane = this.add.sprite(this.game.config.width / 2, 100, 'myplane');
+
+    // 创建飞行帧动画
+    this.anims.create({
+      key: 'fly',
+      frames: this.anims.generateFrameNumbers('myplane', {
+        start: 0,
+        end: 3
+      }),
+      frameRate: 10,
+      repeat: -1
+    });
+
+    // 飞机调用飞行动画
+    plane.anims.play('fly');
+
+    // 添加得分
+    const scoreText = this.add.text(this.game.config.width / 2, 160, `Score: ${data.score}`, { color: '#ff0000', fontSize: '30px' });
+    scoreText.setOrigin(0.5, 0.5);
+
+    // 添加开始按钮
+    const restartButton = this.add.sprite(this.game.config.width / 2, 250, 'replaybutton', 0).setInteractive();
+    // 开始按钮事件
+    restartButton.on('pointerdown', () => {
+      restartButton.setFrame(1);
+    })
+    restartButton.on('pointerup', () => {
+      restartButton.setFrame(0);
+      console.log('start game');
+      this.scene.start('play');
+    })
+  },
+  update() { },
+}
+
 const config = {
   type: Phaser.AUTO,
   width: 240,
   height: 400,
-  scene: [gameSenceCenter.boot, gameSenceCenter.start, gameSenceCenter.play],
+  scene: [gameSenceCenter.boot, gameSenceCenter.start, gameSenceCenter.play, gameSenceCenter.restart],
   physics: {
     default: 'arcade',
   }
