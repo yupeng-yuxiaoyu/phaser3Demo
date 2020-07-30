@@ -208,7 +208,8 @@ gameSenceCenter.play = {
     this.bg.setScrollFactor(1);
 
     // 添加文本
-    this.add.text(0, 0, 'Score: 0', { color: '#ff0000', fontSize: '16px' });
+    this.scoreText = this.add.text(0, 0, 'Score: 0', { color: '#ff0000', fontSize: '16px' });
+    this.score = 0;
 
     // 引入飞机精灵
     this.plane = this.add.sprite(this.game.config.width / 2, 100, 'myplane').setInteractive({ draggable: true });
@@ -300,6 +301,8 @@ gameSenceCenter.play = {
           enemy.destroy();
           console.log('enemy :>> ', enemy);
           const key = item.replace('enemy', '');
+          this.score = +key + this.score;
+          this.scoreText.setText(`Score: ${this.score}`, this.score);
           const enemyFrame = this.add.sprite(enemy.x, enemy.y, `explode${key}`);
           enemyFrame.anims.play(`enemyBoom${key}`);
           enemyFrame.once('animationcomplete', function() {
